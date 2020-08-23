@@ -7,6 +7,28 @@
 
 #include <SDL2/SDL.h>
 
+int check_quit()
+{
+        SDL_Event e;
+
+        while (SDL_PollEvent(&e)) {
+                if (e.type == SDL_QUIT) {
+                        return 0;
+                } else if (e.type == SDL_KEYDOWN) {
+                        
+                        switch (e.key.keysym.sym) {
+                        case SDLK_ESCAPE:
+                                return 0;
+                                break;
+                        default:
+                                break;
+                        }
+                }
+        }
+
+        return 1;
+}
+
 void fire_spread(struct texture tex)
 {
         int index;
@@ -115,6 +137,8 @@ int main(int argc, char *argv[])
 
                 texture_blit_to_canvas(tex, 0, 0, RES_W, RES_H, display, 0, 0, BLIT_ABS);
                 renderer_update_display();
+
+                running = check_quit();
 
                 timer_tic(&timer);
                 if (timer.delta_ms < timer.frame_ms) {
