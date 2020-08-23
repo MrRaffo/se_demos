@@ -29,7 +29,7 @@ int check_quit()
         return 1;
 }
 
-void fire_spread(struct texture tex)
+void fire_spread(struct texture tex, int wind)
 {
         int index;
         for (int y = 1; y < tex.h; y++) {
@@ -38,7 +38,7 @@ void fire_spread(struct texture tex)
                         if (index == 0) {
                                 tex.mask[(y-1)*tex.w+x] = 0;
                         } else {
-                                int rnd = rand() % 3;
+                                int rnd = rand() % wind;
                                 int dst = x - rnd + 1;
                                 tex.mask[(y-1)*tex.w+dst] = index-(rnd & 1);
                         }
@@ -91,38 +91,57 @@ void set_flame_colors()
         flame_colors[37] = color_rgb_int(0xFF,0xFF,0xFF);
 }
 
+void setup_palette(struct palette *pal)
+{
+        for (int x = 0; x < pal->size; x++) {
+                palette_add_color(pal, flame_colors[x]);
+                //struct color col = palette_get_by_index(pal, x);
+                //printf("New color: %f, %f, %f\n", col.r, col.g, col.b);
+        }
+}
+
+       
+
+#define SRC_W 800
+#define SRC_H 600
+#define RES_W 200
+#define RES_H 150
+
 int main(int argc, char *argv[])
 {
-        mem_init(100 * MEM_MEGABYTE);
+        arg_init(argc, argv);
 
-        srand(0xdeadbeef);
-
-        set_flame_colors();
-        printf("%f\n", flame_colors[10].r);
-
-        #define SRC_W 800
-        #define SRC_H 600
-        #define RES_W 200
-        #define RES_H 150
-        struct color BLACK = color_rgb(0.0, 0.0, 0.0);
-        struct palette flames = palette(38);
-
-        struct texture tex = texture(RES_W, RES_H);
-        int x;
-        for (x = 0; x < 38; x++) {
-                palette_add_color(&flames, flame_colors[x]);
-                struct color col = palette_get_by_index(flames, x);
-                printf("New color: %f, %f, %f\n", col.r, col.g, col.b);
+        int wind = 3;
+        char *wind_chk = arg_get(arg_check("--wind")+1);
+        if (wind_chk) {
+                wind = strtol(wind_chk, NULL, 10);
         }
 
+        if (wind == 0 || wind == 1 || wind == -1) {wind = 3;}
+
+        // init memory
+        mem_init(100 * MEM_MEGABYTE);
+
+        // init random number generator
+        srand(0xdeadbeef);
+
+        struct palette flames = palette(38);
+        set_flame_colors();
+        setup_palette(&flames);
+
+        // set up texture
+        struct texture tex = texture(RES_W, RES_H);
         tex.palette = flames;
 
+        // set up display
         renderer_init("Flames", SRC_W, SRC_H, RES_W, RES_H);
         struct canvas display = renderer_get_window_canvas();
+        struct color BLACK = color_rgb(0.0, 0.0, 0.0);
         canvas_fill(display, BLACK);
         renderer_update_display();
 
-        for (x = 0; x < tex.w; x++) {
+        // set bottom line of texture, this generates 'flames'
+        for (int x = 0; x < tex.w; x++) {
                 tex.mask[(tex.h-1)*tex.w+x] = 37;
         }
 
@@ -133,7 +152,7 @@ int main(int argc, char *argv[])
         struct timer timer = timer_init(60);
         while(running) {
 
-                fire_spread(tex);
+                fire_spread(tex, wind);
 
                 texture_blit_to_canvas(tex, 0, 0, RES_W, RES_H, display, 0, 0, BLIT_ABS);
                 renderer_update_display();
