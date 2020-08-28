@@ -160,9 +160,6 @@ int main(int argc, char *argv[])
                 running = check_quit();
 
                 timer_tic(&timer);
-                if (timer.delta_ms < timer.frame_ms) {
-                       SDL_Delay(timer.frame_ms - timer.delta_ms);
-                }
         }
 
         mem_destroy();
